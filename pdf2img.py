@@ -14,6 +14,7 @@ def process(source):
     input_file = PdfFileReader(file(source,'rb'))
     pages = input_file.getNumPages()
     path = os.path.split(file_path)
+    print path
 
     logging.info('')
     for i in range(pages):
@@ -25,9 +26,9 @@ def process(source):
 
     # 验证文件数量
     # 取文件名
-    p = re.compile(os.path.splitext(path[1])[0])
+    p = re.compile(path[1])
     all_file = ','.join(os.listdir(path[0]))
-    if len(p.findall(all_file)) - 1 == pages:
+    if len(p.findall(all_file)) - 2 == pages or len(p.findall(all_file)) - 3 == pages:
         print 'Page Size:%s' % (pages)
     else:
         print pages
@@ -46,8 +47,8 @@ if __name__ == '__main__':
                             datefmt = '[%Y-%m-%d %H:%M:%S]',
                             )
 
-        #get_source = 'pdf2img/de5553b0e452e16a099e1ac3844621d5.pdf'
-        get_source = sys.argv[1]
+        get_source = 'test/test1/bbb.pdf'
+        #get_source = sys.argv[1]
         if get_source:
             process(get_source)
         else:
