@@ -11,9 +11,10 @@ import threading
 
 def process(source,beginning,ending):
     # 取文件名（test/test1/ab）
+    global newfile
     file_path = os.path.splitext(source)[0]
     logging.info('=========>>> Start')
-    for i in range(beginning,ending):
+    for i in xrange(beginning,ending):
         with Image(filename=source + '[' + str(i) + ']',resolution=200) as converted:
             converted.compression_quality = 45
             newfile = file_path + '-' + str(i + 1) + '.jpg'
@@ -46,7 +47,7 @@ if __name__ == '__main__':
         ending_page = 0
         # 线程
         threads_list = []
-        for i in range(threads):
+        for i in xrange(threads):
             beginning_page = ending_page
             ending_page = beginning_page + step
             t = threading.Thread(target=process,args=(get_source,beginning_page,ending_page))
