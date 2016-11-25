@@ -1,67 +1,62 @@
 #!/usr/bin/env python
-#-*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 
 from wand.image import Image
 from PyPDF2 import PdfFileReader
 import logging
-import os,sys
+import os
 import warnings
-import threading
+import multiprocessing
+import re
 
 
-def process(source,beginning,ending):
-    # 取文件名（test/test1/ab）
-    global newfile
-    file_path = os.path.splitext(source)[0]
-    logging.info('=========>>> Start')
-    for i in xrange(beginning,ending):
-        with Image(filename=source + '[' + str(i) + ']',resolution=200) as converted:
-            converted.compression_quality = 45
-            newfile = file_path + '-' + str(i + 1) + '.jpg'
-            converted.save(filename=newfile )
-            logging.info(threading.current_thread().getName() + ' ' + newfile)
-    if not os.path.isfile(newfile): logging.warning('page of file is not found:[%s]' % (newfile))
-
-if __name__ == '__main__':
-
+def logs():
     # 禁用警告
     warnings.filterwarnings('ignore')
-
     # 设置logging
     if not os.path.exists('logs'): os.mkdir('logs')
     log_filename = 'logs/pdf2img.log'
     logging.basicConfig(filename=log_filename, filemode='a', level=logging.DEBUG,
-                        format = '%(asctime)s %(filename)s [%(levelname)s] %(message)s',
-                        datefmt = '[%Y-%m-%d %H:%M:%S]',
+                        format='%(asctime)s %(filename)s [%(levelname)s] %(message)s',
+                        datefmt='[%Y-%m-%d %H:%M:%S]',
                         )
 
+
+def process(single_page):
+    pattern = re.compile('\[|\]')
+    # 页码
+    page_num = pattern.split(single_page)[1]
+    with Image(filename=single_page, resolution=200) as converted:
+        converted.compression_quality = 45
+        newfilename = file_text + page_num + '.jpg'
+        converted.save(filename=newfilename)
+        logging.info(multiprocessing.current_process().name + '' + newfilename)
+    if not os.path.isfile(newfilename): logging.warning('page of file is not found:[%s]' % (newfilename))
+
+
+def get_pages(filename):
+    return PdfFileReader(file(filename, 'rb')).getNumPages()
+
+
+if __name__ == '__main__':
+    logs()
     try:
-        # get_source = 'test/test1/ab.pdf'
-        get_source = sys.argv[1]
-        # 线程数
-        threads = 4
-        # 获取页数
-        input_file = PdfFileReader(file(get_source, 'rb'))
-        pages = input_file.getNumPages()
-        step = pages / threads
-        ending_page = 0
-        # 线程
-        threads_list = []
-        for i in xrange(threads):
-            beginning_page = ending_page
-            ending_page = beginning_page + step
-            t = threading.Thread(target=process,args=(get_source,beginning_page,ending_page))
-            threads_list.append(t)
-        # 启动线程
-        for t in threads_list:
-            t.setDaemon(True)
-            t.start()
-        t.join()
-        process(get_source,ending_page,pages)
+        get_source = 'test/test1/large.pdf'
+        file_text = os.path.splitext(get_source)[0]
+        # get_source = sys.argv[1]
+        pages = get_pages(get_source)
+        # 进程程数
+        process_num = multiprocessing.cpu_count()
+        pool = multiprocessing.Pool(processes=process_num)
+        # 生成一个列表包含所有页码
+        # ['test/test1/ab.pdf[0]', 'test/test1/ab.pdf[1]', 'test/test1/ab.pdf[2]', 'test/test1/ab.pdf[3]']
+        page_list = [get_source + "[" + str(i) + "]" for i in range(pages)]
+        logging.info('=========>>>> Start [Process num: %s]' % (process_num))
+        pool.map(process, page_list)
+        pool.close()
+        pool.join()
         print 'Page Size:%s' % (pages)
         logging.info('<<<========= End')
-    except Exception,e:
+    except Exception, e:
         logging.error(e)
         print 'Page Size:0'
-
-
